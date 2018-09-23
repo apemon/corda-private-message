@@ -1,5 +1,6 @@
 package net.apemon.poc.api
 
+import net.apemon.poc.flow.SendPrivateAndPublicMessageFlow
 import net.apemon.poc.flow.SendPrivateMessageFlow
 import net.apemon.poc.flow.SendPublicMessageFlow
 import net.apemon.poc.state.PrivateMessageState
@@ -79,6 +80,26 @@ class MessageAPI(val rpcOps: CordaRPCOps) {
             val issuer = rpcOps.nodeInfo().legalIdentities.first()
             val identifier = UniqueIdentifier.fromString(request.identifier)
             val trx = rpcOps.startFlow(::SendPublicMessageFlow, identifier, issuer, hash).returnValue.get()
+            return Response
+                    .status(Response.Status.OK)
+                    .entity(trx.tx.outputs.single().data.toString())
+                    .build()
+        } catch (e:Exception) {
+            return Response
+                    .status(Response.Status.BAD_REQUEST)
+                    .entity(e.printStackTrace())
+                    .build()
+        }
+    }
+
+    @POST
+    @Path("sendAll")
+    fun sendAllMessage(request: sendPrivateMessageRequest): Response {
+        try {
+            val sender = rpcOps.nodeInfo().legalIdentities.first()
+            val receiver = rpcOps.partiesFromName(request.to, true).first()
+            val identifier = UniqueIdentifier()
+            val trx = rpcOps.startFlow(::SendPrivateAndPublicMessageFlow, sender, receiver, identifier, request.type, request.message).returnValue.get()
             return Response
                     .status(Response.Status.OK)
                     .entity(trx.tx.outputs.single().data.toString())
