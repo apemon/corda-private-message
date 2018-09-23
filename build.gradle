@@ -161,8 +161,8 @@ task deployNodes(type: net.corda.plugins.Cordform, dependsOn: ['jar']) {
     }
 }
 
-task runTemplateClient(type: JavaExec) {
+task runClient(type: JavaExec) {
     classpath = sourceSets.main.runtimeClasspath
-    main = 'com.template.ClientKt'
+    main = 'net.apemon.poc.client.ClientKt'
     args 'localhost:10006'
 }
