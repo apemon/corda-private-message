@@ -1,9 +1,12 @@
 package net.apemon.poc.api
 
 import net.apemon.poc.flow.SendPrivateMessageFlow
+import net.apemon.poc.flow.SendPublicMessageFlow
 import net.apemon.poc.state.PrivateMessageState
+import net.apemon.poc.state.PublicMessageState
 import net.corda.core.contracts.ContractState
 import net.corda.core.contracts.StateAndRef
+import net.corda.core.contracts.UniqueIdentifier
 import net.corda.core.crypto.SecureHash
 import net.corda.core.crypto.SecureHash.SHA256
 import net.corda.core.internal.x500Name
@@ -38,6 +41,13 @@ class MessageAPI(val rpcOps: CordaRPCOps) {
         return rpcOps.vaultQueryBy<PrivateMessageState>().states
     }
 
+    @GET
+    @Path("publicMessage")
+    @Produces(MediaType.APPLICATION_JSON)
+    fun getPublicMessage(): List<StateAndRef<ContractState>> {
+        return rpcOps.vaultQueryBy<PublicMessageState>().states
+    }
+
     @POST
     @Path("sendPrivate")
     fun sendPrivateMessage(request: sendPrivateMessageRequest): Response {
@@ -61,9 +71,34 @@ class MessageAPI(val rpcOps: CordaRPCOps) {
         }
     }
 
+    @POST
+    @Path("sendPublic")
+    fun sendPublcMessage(request: sendPublicMessageRequest): Response {
+        try {
+            val hash = request.hash
+            val issuer = rpcOps.nodeInfo().legalIdentities.first()
+            val identifier = UniqueIdentifier.fromString(request.identifier)
+            val trx = rpcOps.startFlow(::SendPublicMessageFlow, identifier, issuer, hash).returnValue.get()
+            return Response
+                    .status(Response.Status.OK)
+                    .entity(trx.tx.outputs.single().data.toString())
+                    .build()
+        } catch (e:Exception) {
+            return Response
+                    .status(Response.Status.BAD_REQUEST)
+                    .entity(e.printStackTrace())
+                    .build()
+        }
+    }
+
     data class sendPrivateMessageRequest(
             val to: String,
             val type: String,
             val message: String
+    )
+
+    data class sendPublicMessageRequest (
+            val identifier: String,
+            val hash: String
     )
 }
